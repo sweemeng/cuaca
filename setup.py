@@ -3,7 +3,7 @@ from setuptools import setup
 
 
 setup(
-    name = "Cuaca API ",
+    name = "Cuaca",
     version = "0.0.1",
     author = "Ng Swee Meng",
     author_email = "sweester@gmail.com",
@@ -12,4 +12,7 @@ setup(
     url = "https://github.com/sweemeng/cuaca",
     packages=['cuaca'],
     long_description="This is a Wrapper for the Malaysian Weather Service API",
+    install_requires = [
+        'requests',
+    ]
 )
