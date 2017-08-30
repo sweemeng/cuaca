@@ -152,6 +152,9 @@ class WeatherAPI(object):
         
         return self.location(name, "TOURISTDEST")
 
+    def water(self, name):
+        return self.location(name, "WATERS")
+
     def waters(self):
         return self.locations("WATERS")
 
