@@ -17,6 +17,10 @@ class WeatherAPI(object):
         self.headers = {
                 "Authorization" : "METToken %s" % api_key
         }
+        self.etag, self.response_etag = None, None
+    
+    def set_etag(self, etag):
+        self.etag = etag
 
     def forecast(self, location_id, start_date, end_date, forecast_type="GENERAL"):
         """
@@ -117,14 +121,21 @@ class WeatherAPI(object):
         """
         A utility fuction to make API call easy, wrap around requests
         """
+        # Adding new header - naive way but works for now
+        if self.etag:
+            self.headers['If-None-Match'] = self.etag
         r = requests.get(url, headers=self.headers, params=params)
         # Should we maintain api result, metadata can be useful :-/
         if r.status_code == 200:
+            self.response_etag = r.headers.get("ETag", None)
             data = r.json()
             if metadata:
                 return data["metadata"]
             # might fail
             return data["results"]
+        elif r.status_code == 304:
+            # Handle If-None-Match: ETag
+            return (304, 'Not modified')
 
         return r.json()
 
