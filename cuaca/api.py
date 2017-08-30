@@ -98,7 +98,6 @@ class WeatherAPI(object):
         }
 
         api_result = self.call_api(location_url, params)
-
         
         return api_result
 
@@ -158,7 +157,15 @@ class WeatherAPI(object):
     def waters(self):
         return self.locations("WATERS")
 
-    def call_api(self, url, params, metadata=False):
+    def datatypes(self):
+        """
+        GET a list of data types from API - to interpret the results from data
+        endpoint
+        """
+        url = "{}/{}".format(self.end_point, "datatypes")
+        return self.call_api(url)
+
+    def call_api(self, url, params={}, metadata=False):
         """
         A utility fuction to make API call easy, wrap around requests
         """
@@ -182,4 +189,3 @@ class WeatherAPI(object):
             return self.cache[k]["result"]
 
         return r.json()
-
