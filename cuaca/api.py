@@ -18,7 +18,7 @@ class WeatherAPI(object):
                 "Authorization" : "METToken %s" % api_key
         }
 
-    def forecast(self, location_id, start_date, end_date):
+    def forecast(self, location_id, start_date, end_date, forecast_type="GENERAL"):
         """
         Get a weather forecast from API
 
@@ -27,11 +27,12 @@ class WeatherAPI(object):
             start_date  - Date in string, format is yyyy-mm-dd
             end_date    - Date in string, format is yyyy-mm-dd
         """
-        # there is data type, but only forecast work :-/
+        if forecast_type not in ("GENERAL", "MARINE"):
+            raise Exception("Error, forecast_type must be GENERAL or MARINE")
         data_url = "{}/{}".format(self.end_point, "data")
         params = {
             "datasetid":"FORECAST", # only this work for data url
-            "datacategoryid": "GENERAL", # only this work :-/
+            "datacategoryid": forecast_type,
             "locationid": location_id, 
             "start_date": start_date,
             "end_date": end_date
@@ -44,11 +45,11 @@ class WeatherAPI(object):
         GET a list of Locations id from API
 
         Arguments:
-            location_type - string must be STATE, DISTRICT, TOWN, TOURISTDEST
+            location_type - string must be STATE, DISTRICT, TOWN, TOURISTDEST, WATERS
         """
         location_url = "{}/{}".format(self.end_point, "locations")
-        if location_type not in ("STATE", "DISTRICT", "TOWN", "TOURISTDEST"):
-            raise Exception("Error, location type must be STATE, DISTRICT, TOWN, TOURISTDEST")
+        if location_type not in ("STATE", "DISTRICT", "TOWN", "TOURISTDEST", "WATERS"):
+            raise Exception("Error, location type must be STATE, DISTRICT, TOWN, TOURISTDEST", "WATERS")
 
         params = {
             "locationcategoryid": location_type
@@ -65,7 +66,7 @@ class WeatherAPI(object):
 
         Arguments:
             location_name - name of location in string
-            location_type - string must be STATE, DISTRICT, TOWN, TOURISTDEST
+            location_type - string must be STATE, DISTRICT, TOWN, TOURISTDEST, WATER
         """
         locations = self.locations(location_type)
         location_id = None
@@ -108,6 +109,9 @@ class WeatherAPI(object):
     def tourist_attraction(self, name):
         
         return self.location(name, "TOURISTDEST")
+    
+    def waters(self):
+        return self.locations("WATERS")
 
     def call_api(self, url, params, metadata=False):
         """
