@@ -1,63 +1,49 @@
+"""Python wrapper for the Malaysian Weather Service API.
+
+To use this, first register an account at https://api.met.gov.my/
+(I wish this public project is really public)
+"""
 import os
 import datetime
 import pickle
 import requests
 
-class WeatherAPI(object):
-    """
-    This is a python wrapper for the Malaysian Weather Service API. 
-    TO use this, first register an account(I wish this public project is really public)
 
-    url at https://api.met.gov.my/
+class WeatherAPI(object):
+    """Weather API wrapper.
+
+    >>> from cuaca
+    >>> api = cuaca.api.WeatherAPI("API_KEY")
     """
 
     def __init__(self, api_key, end_point="https://api.met.gov.my/v2/", cache_dir=None):
-        """
-        api = WeatherAPI("API_KEY")
-        """
         self.end_point = end_point
-        self.headers = {
-                "Authorization" : "METToken %s" % api_key
-        }
-        self.cache_dir = cache_dir
-        self.cache, self.cache_index = {}, {}
+        self.headers = {"Authorization": "METToken %s" % api_key}
         self.cache_expiry = datetime.timedelta(days=1)
-        if self.cache_dir:
-            self.load_cache()
+        if cache_dir:
+            self.cache_file = os.path.join(cache_dir, "cuaca.p")
+            self.cache = self._load_cache()
+        else:
+            self.cache = {}
 
-    def cache_expire(self):
-        now = datetime.datetime.now()
-        for k, v in self.cache_index.items():
-            if now - k >= self.cache_expiry:
-                for c in v:
-                    try:
-                        del self.cache[c]
-                    except:
-                        pass
+    def __del__(self):  # XXX: Should we implement __exit__?
+        self._save_cache()
 
-    def load_cache(self):
-        try:
-            with open(os.path.join(self.cache_dir, "cuaca.p"), "rb") as fp:
-                self.cache = pickle.load(fp)
-        except FileNotFoundError:
-                pass
-        try:
-            with open(os.path.join(self.cache_dir, "cuacaidx.p"), "rb") as fp:
-                self.cache_index = pickle.load(fp)
-            self.cache_expire()
-        except FileNotFoundError:
-            pass
+    def _not_expired(self, d):
+        """Return cache that are not expired."""
+        return {k: d[k] for k in d if d[k]["expire"] > datetime.datetime.now()}
 
-    def save_cache(self):
-        if not self.cache_dir: return
-        self.cache_expire()
-        try:
-            with open(os.path.join(self.cache_dir, "cuaca.p"), "wb") as fp:
-                pickle.dump(self.cache, fp)
-            with open(os.path.join(self.cache_dir, "cuacaidx.p"), "wb") as fp:
-                pickle.dump(self.cache_index, fp)
-        except:
-            raise
+    def _load_cache(self):
+        if not os.path.exists(getattr(self, 'cache_file', '')):
+            return {}
+        with open(self.cache_file, "rb") as f:
+            return self._not_expired(pickle.load(f))
+
+    def _save_cache(self):
+        if not getattr(self, 'cache_file'):
+            return
+        with open(os.path.join(self.cache_file), "wb") as f:
+            pickle.dump(self._not_expired(self.cache), f)
 
     def forecast(self, location_id, start_date, end_date, forecast_type='GENERAL'):
         """
@@ -73,9 +59,9 @@ class WeatherAPI(object):
         if forecast_type not in ('GENERAL', 'MARINE'):
             raise Exception("Error, forecast_type must be GENERAL or MARINE")
         params = {
-            "datasetid":"FORECAST", # only this work for data url
+            "datasetid": "FORECAST",  # only this work for data url
             "datacategoryid": forecast_type,
-            "locationid": location_id, 
+            "locationid": location_id,
             "start_date": start_date,
             "end_date": end_date
         }
@@ -89,7 +75,7 @@ class WeatherAPI(object):
         Arguments:
             location_type - string must be STATE, DISTRICT, TOWN, TOURISTDEST
         """
-        location_url = "{}/{}".format(self.end_point, "locations")
+        location_url = "/".join(self.end_point, "locations")
         if location_type not in ("STATE", "DISTRICT", "TOWN", "TOURISTDEST", "WATERS"):
             raise Exception("Error, location type must be STATE, DISTRICT, TOWN, TOURISTDEST, WATERS")
 
@@ -98,7 +84,7 @@ class WeatherAPI(object):
         }
 
         api_result = self.call_api(location_url, params)
-        
+
         return api_result
 
     def location(self, location_name, location_type):
@@ -148,7 +134,6 @@ class WeatherAPI(object):
         return self.locations("TOURISTDEST")
 
     def tourist_attraction(self, name):
-        
         return self.location(name, "TOURISTDEST")
 
     def water(self, name):
@@ -162,29 +147,24 @@ class WeatherAPI(object):
         GET a list of data types from API - to interpret the results from data
         endpoint
         """
-        url = "{}/{}".format(self.end_point, "datatypes")
+        url = "/".join(self.end_point, "datatypes")
         return self.call_api(url)
 
     def call_api(self, url, params={}, metadata=False):
-        """
-        A utility fuction to make API call easy, wrap around requests
-        """
-        k = "{}{}".format(url, str(params))
-        if k in self.cache:
+        """Wrapper to provide easy access to API call."""
+        k, now = "{}{}".format(url, str(params)), datetime.datetime.now()
+        if k in self.cache and self.cache[k]["expire"] > now:
             self.headers["If-None-Match"] = self.cache[k]["etag"]
+
         r = requests.get(url, headers=self.headers, params=params)
         # Should we maintain api result, metadata can be useful :-/
         if r.status_code == 200:
-            etag = r.headers.get("ETag", None)
             data = r.json()
-            if metadata:
-                self.cache[k] = {"etag": etag, "result": data["metadata"]}
-                self.cache_index[datetime.datetime.now()] = k
-                return data["metadata"]
-            # might fail
-            self.cache[k] = {"etag": etag, "result": data["results"]}
-            self.cache_index[datetime.datetime.now()] = k
-            return data["results"]
+            self.cache[k] = {
+                "etag": r.headers.get("ETag", None),
+                "result": data["metadata"] if metadata else data["results"],
+                "expire": datetime.datetime.now() + self.cache_expiry}
+            return self.cache[k]["result"]
         elif r.status_code == 304:
             return self.cache[k]["result"]
 
