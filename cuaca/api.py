@@ -75,7 +75,7 @@ class WeatherAPI(object):
         Arguments:
             location_type - string must be STATE, DISTRICT, TOWN, TOURISTDEST
         """
-        location_url = "/".join(self.end_point, "locations")
+        location_url = "{}/{}".format(self.end_point, "locations")
         if location_type not in ("STATE", "DISTRICT", "TOWN", "TOURISTDEST", "WATERS"):
             raise Exception("Error, location type must be STATE, DISTRICT, TOWN, TOURISTDEST, WATERS")
 
@@ -147,8 +147,12 @@ class WeatherAPI(object):
         GET a list of data types from API - to interpret the results from data
         endpoint
         """
-        url = "/".join(self.end_point, "datatypes")
+        url = "{}/{}".format(self.end_point, "datatypes")
         return self.call_api(url)
+
+    def stations(self):
+        station_url = "{}/{}".format(self.end_point, "stations")
+        return self.call_api(station_url)
 
     def call_api(self, url, params={}, metadata=False):
         """Wrapper to provide easy access to API call."""
