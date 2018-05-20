@@ -6,7 +6,7 @@ def read(fname):
 
 setup(
     name = "Cuaca",
-    version = "0.0.2",
+    version = "0.0.3",
     author = "Ng Swee Meng",
     author_email = "sweester@gmail.com",
     description = ("A python wrapper for Malaysian Weather Service API"),
@@ -14,6 +14,7 @@ setup(
     url = "https://github.com/sweemeng/cuaca",
     packages=['cuaca'],
     long_description=read("README.md"),
+    long_description_content_type='text/markdown',
     install_requires = [
         'requests',
     ]
