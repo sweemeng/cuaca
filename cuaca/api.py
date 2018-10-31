@@ -7,7 +7,7 @@ import os
 import datetime
 import pickle
 import requests
-
+import json
 
 class WeatherAPI(object):
     """Weather API wrapper.
@@ -40,10 +40,22 @@ class WeatherAPI(object):
             return self._not_expired(pickle.load(f))
 
     def _save_cache(self):
-        if not getattr(self, 'cache_file'):
+        if not hasattr(self, 'cache_file'):
             return
         with open(os.path.join(self.cache_file), "wb") as f:
             pickle.dump(self._not_expired(self.cache), f)
+
+    def _parse_warning(self, data):
+        # data is list
+        results = []
+        for item in data:
+            value = item["value"]
+            # because json parser hate single quote
+            value = value.replace("'",'"')
+            item["value"] = json.loads(value)
+            results.append(item)
+        return results
+
 
     def forecast(self, location_id, start_date, end_date, forecast_type='GENERAL'):
         """
@@ -166,7 +178,10 @@ class WeatherAPI(object):
             "start_date": start_date,
             "end_date": end_date
         }
-        return self.call_api(url, params)
+        data = self.call_api(url, params)
+        # data value is string, convert it into json to make it easier
+        # Also allow opportunity to work on the text to extract thing
+        return self._parse_warning(data)
 
     def call_api(self, url, params={}, metadata=False):
         """Wrapper to provide easy access to API call."""
