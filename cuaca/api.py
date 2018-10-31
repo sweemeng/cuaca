@@ -154,6 +154,20 @@ class WeatherAPI(object):
         station_url = "{}/{}".format(self.end_point, "stations")
         return self.call_api(station_url)
 
+    def warning(self, datacategoryid, start_date, end_date):
+        accepted_cat = ("QUAKETSUNAMI2", "WINDSEA2", "THUNDERSTORM2", "RAIN2", "CYCLONE2")
+        if datacategoryid not in accepted_cat:
+            raise Exception("datacategoryid must be QUAKETSUNAMI2 or WINDSEA2 or THUNDERSTORM2 or RAIN2 or CYCLONE2")
+        url = "{}/{}".format(self.end_point, "data")
+
+        params = {
+            "datasetid": "WARNING",
+            "datacategoryid": datacategoryid,
+            "start_date": start_date,
+            "end_date": end_date
+        }
+        return self.call_api(url, params)
+
     def call_api(self, url, params={}, metadata=False):
         """Wrapper to provide easy access to API call."""
         k, now = "{}{}".format(url, str(params)), datetime.datetime.now()
