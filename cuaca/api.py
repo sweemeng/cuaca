@@ -16,7 +16,7 @@ class WeatherAPI(object):
     >>> api = cuaca.api.WeatherAPI("API_KEY")
     """
 
-    def __init__(self, api_key, end_point="https://api.met.gov.my/v2/", cache_dir=None):
+    def __init__(self, api_key, end_point="https://api.met.gov.my/v2.1/", cache_dir=None):
         self.end_point = end_point
         self.headers = {"Authorization": "METToken %s" % api_key}
         self.cache_expiry = datetime.timedelta(days=1)
