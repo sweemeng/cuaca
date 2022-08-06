@@ -16,10 +16,11 @@ class WeatherAPI(object):
     >>> api = cuaca.api.WeatherAPI("API_KEY")
     """
 
-    def __init__(self, api_key, end_point="https://api.met.gov.my/v2.1/", cache_dir=None):
+    def __init__(self, api_key, end_point="https://api.met.gov.my/v2.1/", cache_dir=None, offset_size=50):
         self.end_point = end_point
         self.headers = {"Authorization": "METToken %s" % api_key}
         self.cache_expiry = datetime.timedelta(days=1)
+        self.offset = offset_size
         if cache_dir:
             self.cache_file = os.path.join(cache_dir, "cuaca.p")
             self.cache = self._load_cache()
@@ -50,6 +51,8 @@ class WeatherAPI(object):
         results = []
         for item in data:
             value = item["value"]
+            print(value["text"].keys())
+            print(value["text"]["en"])
             # because json parser hate single quote
             value = value.replace("'",'"')
             item["value"] = json.loads(value)
@@ -80,7 +83,7 @@ class WeatherAPI(object):
         api_result = self.call_api(data_url, params)
         return api_result
 
-    def locations(self, location_type):
+    def locations(self, location_type, page=0): # page always start with 0, 
         """
         GET a list of Locations id from API
 
@@ -94,6 +97,8 @@ class WeatherAPI(object):
         params = {
             "locationcategoryid": location_type
         }
+        if page:
+            params["offset"] = self.offset * page
 
         api_result = self.call_api(location_url, params)
 
@@ -181,7 +186,7 @@ class WeatherAPI(object):
         data = self.call_api(url, params)
         # data value is string, convert it into json to make it easier
         # Also allow opportunity to work on the text to extract thing
-        return self._parse_warning(data)
+        return data
 
     def call_api(self, url, params={}, metadata=False):
         """Wrapper to provide easy access to API call."""
