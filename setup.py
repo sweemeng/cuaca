@@ -6,7 +6,7 @@ def read(fname):
 
 setup(
     name = "Cuaca",
-    version = "0.0.3",
+    version = "0.1.0",
     author = "Ng Swee Meng",
     author_email = "sweester@gmail.com",
     description = ("A python wrapper for Malaysian Weather Service API"),
